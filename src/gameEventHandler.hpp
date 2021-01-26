@@ -23,5 +23,6 @@ public:
 
 private:
     Map<uint32, Array<std::pair<float, InputControl &>>> inputs;
+    void updateInput(uint32 inputCode, float dir, bool isRepeat);
     NULL_COPY_AND_ASSIGN(GameEventHandler);
 };

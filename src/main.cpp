@@ -13,22 +13,8 @@
 #include "math/aabb.hpp"
 #include "math/plane.hpp"
 #include "math/intersects.hpp"
-
-class TempEventHandler : public IApplicationEventHandler
-{
-public:
-	bool keyDown = false;
-	TempEventHandler() {}
-
-	virtual void onKeyDown(uint32 keyCode, bool isRepeat)
-	{
-		keyDown = true;
-	}
-	virtual void onKeyUp(uint32 keyCode, bool isRepeat)
-	{
-		keyDown = false;
-	}
-};
+#include "gameEventHandler.hpp"
+#include "core/input.hpp"
 
 // NOTE: Profiling reveals that in the current instanced rendering system:
 // - Updating the buffer takes more time than
@@ -95,7 +81,7 @@ static int runApp(Application *app)
 	float randScaleX = randZ * window.getWidth() / (float)window.getHeight();
 	float randScaleY = randZ;
 
-	uint32 numInstances = 100;
+	uint32 numInstances = 1;
 	Matrix transformMatrix(Matrix::identity());
 	Transform transform;
 	Array<Matrix> transformMatrixArray;
@@ -103,10 +89,10 @@ static int runApp(Application *app)
 	for (uint32 i = 0; i < numInstances; i++)
 	{
 		transformMatrixArray.push_back(Matrix::identity());
-		transform.setTranslation(Vector3f(
-			(Math::randf() * randScaleX) - randScaleX / 2.0f,
-			(Math::randf() * randScaleY) - randScaleY / 2.0f,
-			randZ));
+		transform.setTranslation(Vector3f(0.0f, 0.0f,
+										  // (Math::randf() * randScaleX) - randScaleX / 2.0f,
+										  // (Math::randf() * randScaleY) - randScaleY / 2.0f,
+										  randZ));
 		transformMatrixBaseArray.push_back(transform.toMatrix());
 	}
 	transform.setTranslation(Vector3f(0.0f, 0.0f, 0.0f));
@@ -120,7 +106,21 @@ static int runApp(Application *app)
 	//	drawParams.destBlend = RenderDevice::BLEND_FUNC_ONE;
 	// End scene creation
 
-	TempEventHandler eventHandler;
+	GameEventHandler eventHandler;
+	InputControl horizontal;
+	InputControl vertical;
+	eventHandler.addKeyControl(Input::KEY_A, horizontal, -1.0f);
+	eventHandler.addKeyControl(Input::KEY_D, horizontal, 1.0f);
+	eventHandler.addKeyControl(Input::KEY_LEFT, horizontal, -1.0f);
+	eventHandler.addKeyControl(Input::KEY_RIGHT, horizontal, 1.0f);
+
+	eventHandler.addKeyControl(Input::KEY_S, vertical, -1.0f);
+	eventHandler.addKeyControl(Input::KEY_W, vertical, 1.0f);
+	eventHandler.addKeyControl(Input::KEY_DOWN, vertical, -1.0f);
+	eventHandler.addKeyControl(Input::KEY_UP, vertical, 1.0f);
+
+	float xPos = 0.0f;
+	float yPos = 0.0f;
 
 	uint32 fps = 0;
 	double lastTime = Time::getTime();
@@ -149,14 +149,15 @@ static int runApp(Application *app)
 		{
 			app->processMessages(frameTime, eventHandler);
 			// Begin scene update
+			xPos += 10.0f * frameTime * horizontal.getAmt();
+			yPos += 10.0f * frameTime * vertical.getAmt();
 			transform.setRotation(Quaternion(Vector3f(1.0f, 1.0f, 1.0f).normalized(), amt * 10.0f / 11.0f));
-			if (eventHandler.keyDown)
+			transform.setTranslation(Vector3f(xPos, yPos, 0.0f));
+			for (uint32 i = 0; i < transformMatrixArray.size(); i++)
 			{
-				for (uint32 i = 0; i < transformMatrixArray.size(); i++)
-				{
-					transformMatrixArray[i] = (perspective * transformMatrixBaseArray[i] * transform.toMatrix());
-				}
+				transformMatrixArray[i] = (perspective * transformMatrixBaseArray[i] * transform.toMatrix());
 			}
+
 			vertexArray.updateBuffer(4, &transformMatrixArray[0],
 									 transformMatrixArray.size() * sizeof(Matrix));
 			amt += (float)frameTime / 2.0f;

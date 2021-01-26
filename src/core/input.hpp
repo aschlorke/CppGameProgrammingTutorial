@@ -1,23 +1,8 @@
-/*
- * Copyright (C) 2014 Benny Bobaganoosh
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef I_INPUT_INCLUDED_H
 #define I_INPUT_INCLUDED_H
 
-class IInput
+class Input
 {
 public:
 	enum
@@ -31,7 +16,7 @@ public:
 
 	enum
 	{
-			KEY_UNKNOWN = 0,
+		KEY_UNKNOWN = 0,
 
 		/**
 		 *  \name Usage page 0x07
@@ -196,8 +181,8 @@ public:
 											*   LESS-THAN SIGN and GREATER-THAN SIGN
 											*   in a Swiss German, German, or French
 											*   layout. */
-		KEY_APPLICATION = 101, /**< windows contextual menu, compose */
-		KEY_POWER = 102, /**< The USB document says this is a status flag,
+		KEY_APPLICATION = 101,	  /**< windows contextual menu, compose */
+		KEY_POWER = 102,		  /**< The USB document says this is a status flag,
 								   *   not a physical key - but some Mac keyboards
 								   *   do have a power key. */
 		KEY_KP_EQUALS = 103,
@@ -218,7 +203,7 @@ public:
 		KEY_MENU = 118,
 		KEY_SELECT = 119,
 		KEY_STOP = 120,
-		KEY_AGAIN = 121,   /**< redo */
+		KEY_AGAIN = 121, /**< redo */
 		KEY_UNDO = 122,
 		KEY_CUT = 123,
 		KEY_COPY = 124,
@@ -227,10 +212,10 @@ public:
 		KEY_MUTE = 127,
 		KEY_VOLUMEUP = 128,
 		KEY_VOLUMEDOWN = 129,
-	/* not sure whether there's a reason to enable these */
-	/*     KEY_LOCKINGCAPSLOCK = 130,  */
-	/*     KEY_LOCKINGNUMLOCK = 131, */
-	/*     KEY_LOCKINGSCROLLLOCK = 132, */
+		/* not sure whether there's a reason to enable these */
+		/*     KEY_LOCKINGCAPSLOCK = 130,  */
+		/*     KEY_LOCKINGNUMLOCK = 131, */
+		/*     KEY_LOCKINGSCROLLLOCK = 132, */
 		KEY_KP_COMMA = 133,
 		KEY_KP_EQUALSAS400 = 134,
 
@@ -323,12 +308,12 @@ public:
 		KEY_RALT = 230, /**< alt gr, option */
 		KEY_RGUI = 231, /**< windows, command (apple), meta */
 
-		KEY_MODE = 257,    /**< I'm not sure if this is really not covered
+		KEY_MODE = 257, /**< I'm not sure if this is really not covered
 									 *   by any of the above, but since there's a
 									 *   special KMOD_MODE for it I'm adding it here
 									 */
 
-		/*@}*//*Usage page 0x07*/
+		/*@}*/ /*Usage page 0x07*/
 
 		/**
 		 *  \name Usage page 0x0C
@@ -355,7 +340,7 @@ public:
 		KEY_AC_REFRESH = 273,
 		KEY_AC_BOOKMARKS = 274,
 
-		/*@}*//*Usage page 0x0C*/
+		/*@}*/ /*Usage page 0x0C*/
 
 		/**
 		 *  \name Walther keys
@@ -381,20 +366,6 @@ public:
 	static const int NUM_KEYS = 512;
 	static const int NUM_MOUSEBUTTONS = 256;
 
-	virtual ~IInput() {}
-	virtual void update() = 0;
-	virtual bool getKey(int keyCode) = 0;
-	virtual bool getMouse(int keyCode) = 0;
-
-	virtual int getMouseX() = 0;
-	virtual int getMouseY() = 0;
-	virtual int getMouseDeltaX() = 0;
-	virtual int getMouseDeltaY() = 0;
-
-	// Note: Also can have joystick methods for joystick input!
-
-	virtual void setCursorVisibile(bool value) = 0;
-	virtual void setMousePosition(int x, int y) = 0;
 private:
 };
 
