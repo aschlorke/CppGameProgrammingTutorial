@@ -72,9 +72,6 @@ add_executable(CGFX5 ${HDRS} ${SRCS})
 # We need a CMAKE_DIR with some code to find external dependencies
 SET(CGFX5_CMAKE_DIR "${CGFX5_SOURCE_DIR}/cmake")
 
-find_program(CMAKE_C_COMPILER NAMES $ENV{CC} gcc PATHS ENV PATH NO_DEFAULT_PATH)
-find_program(CMAKE_CXX_COMPILER NAMES $ENV{CXX} g++ PATHS ENV PATH NO_DEFAULT_PATH)
-
 #######################################
 # LOOK for the packages that we need! #
 #######################################
