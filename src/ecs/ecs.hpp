@@ -32,7 +32,7 @@ public:
     template <class Component>
     inline Component *getComponent(EntityHandle entity)
     {
-        return getComponentInternal(handleToEntity(entity), Component::ID);
+        return getComponentInternal(handleToEntity(entity), components[Component::ID], Component::ID);
     }
 
     // system methods
@@ -42,7 +42,7 @@ public:
     }
     void updateSystems(float delta);
 
-    void removeSystem(BaseECSSystem &system);
+    bool removeSystem(BaseECSSystem &system);
 
 private:
     Array<BaseECSSystem *> systems;
@@ -67,7 +67,10 @@ private:
     void deleteComponent(uint32 componentID, uint32 index);
     bool removeComponentInternal(EntityHandle handle, uint32 componentID);
     void addComponentInternal(EntityHandle handle, Array<std::pair<uint32, uint32>> &entity, uint32 componentID, BaseECSComponent *component);
-    BaseECSComponent *getComponentInternal(Array<std::pair<uint32, uint32>> &entityComponents, uint32 componentID);
+    BaseECSComponent *getComponentInternal(Array<std::pair<uint32, uint32>> &entityComponents, Array<uint8> &array, uint32 componentID);
+    uint32 findLeastCommonComponent(const Array<uint32> &componentTypes);
+
+    void updateSystemWithMultipleComponents(uint32 index, float delta, const Array<uint32> &componentTypes, Array<BaseECSComponent *> &componentParam, Array<Array<uint8> *> &componentArrays);
 
     NULL_COPY_AND_ASSIGN(ECS);
 };
