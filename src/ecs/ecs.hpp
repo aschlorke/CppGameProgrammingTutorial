@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../core/common.hpp"
 #include "ecsComponent.hpp"
 #include "ecsSystem.hpp"
 #include "dataStructures/map.hpp"
@@ -12,7 +13,7 @@ public:
 
     // entity methods
     EntityHandle makeEntity(BaseECSComponent *components, const uint32 *componentIDs, size_t numComponents);
-    void removeEntity(Entityhandle handle);
+    void removeEntity(EntityHandle handle);
 
     // component methods
     template <class Component>
@@ -35,11 +36,11 @@ public:
 private:
     Array<BaseECSSystem *> systems;
     Map<uint32, Array<uint8>> components;
-    Array < std::pair<uint32, Array<std::pair<uint32, uint32>> *> entities;
+    Array<std::pair<uint32, Array<std::pair<uint32, uint32>>> *> entities;
 
     inline std::pair<uint32, Array<std::pair<uint32, uint32>>> *handleToRawType(EntityHandle handle)
     {
-        return (std::pair < uint32, Array<std::pair<uint32, uint32>> *)handle;
+        return (std::pair<uint32, Array<std::pair<uint32, uint32>>> *)handle;
     }
 
     inline uint32 handleToEntityIndex(EntityHandle handle)
@@ -51,6 +52,8 @@ private:
     {
         return handleToRawType(handle)->second;
     }
+
+    void removeComponentInternal(uint32 componentID, uint32 index) {}
 
     NULL_COPY_AND_ASSIGN(ECS);
 };

@@ -26,5 +26,5 @@ fi
 
 mkdir build
 cd build
-cmake -DCMAKE_BUILD_TYPE="$BUILD_TARGET" "${@:1}" ../
+CC=/usr/local/bin/gcc CXX=/usr/local/bin/g++ cmake -DCMAKE_BUILD_TYPE="$BUILD_TARGET" "${@:1}" ../
 make -j 4

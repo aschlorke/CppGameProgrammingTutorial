@@ -18,7 +18,7 @@ public:
     static uint32 registerComponentType(ECSComponentCreateFunction createfn, ECSComponentFreeFunction freefn, size_t size);
     EntityHandle entity = NULL_ENTITY_HANDLE;
 
-    inline static ECSComponentCreateFunction getTypeCreateFunciton(uint32 id)
+    inline static ECSComponentCreateFunction getTypeCreateFunction(uint32 id)
     {
         return std::get<0>(componentTypes[id]);
     }
@@ -31,6 +31,11 @@ public:
     inline static size_t getTypeSize(uint32 id)
     {
         return std::get<2>(componentTypes[id]);
+    }
+
+    inline static bool isTypeValid(uint32 id)
+    {
+        return id < componentTypes.size();
     }
 
 private:
