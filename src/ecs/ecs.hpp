@@ -1,9 +1,10 @@
 #pragma once
 
-#include "../core/common.hpp"
+#include "core/common.hpp"
 #include "ecsComponent.hpp"
 #include "ecsSystem.hpp"
 #include "dataStructures/map.hpp"
+#include "core/memory.hpp"
 
 class ECS
 {
@@ -17,12 +18,22 @@ public:
 
     // component methods
     template <class Component>
-    void addComponent(EntityHandle entity, Component *component);
+    inline void addComponent(EntityHandle handle, Component *component)
+    {
+        addComponentInternal(handle, handleToEntity(handle), Component::ID, component);
+    }
 
     template <class Component>
-    void removeComponent(EntityHandle entity);
+    inline bool removeComponent(EntityHandle entity)
+    {
+        return removeComponentInternal(entity, Component::ID);
+    }
 
-    void getComponent(EntityHandle entity);
+    template <class Component>
+    inline Component *getComponent(EntityHandle entity)
+    {
+        return getComponentInternal(handleToEntity(entity), Component::ID);
+    }
 
     // system methods
     inline void addSystem(BaseECSSystem &system)
@@ -53,7 +64,10 @@ private:
         return handleToRawType(handle)->second;
     }
 
-    void removeComponentInternal(uint32 componentID, uint32 index) {}
+    void deleteComponent(uint32 componentID, uint32 index);
+    bool removeComponentInternal(EntityHandle handle, uint32 componentID);
+    void addComponentInternal(EntityHandle handle, Array<std::pair<uint32, uint32>> &entity, uint32 componentID, BaseECSComponent *component);
+    BaseECSComponent *getComponentInternal(Array<std::pair<uint32, uint32>> &entityComponents, uint32 componentID);
 
     NULL_COPY_AND_ASSIGN(ECS);
 };
