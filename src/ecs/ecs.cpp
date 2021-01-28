@@ -28,7 +28,7 @@ EntityHandle ECS::makeEntity(BaseECSComponent **entityComponents, const uint32 *
 
     for (uint32 i = 0; i < numComponents; i++)
     {
-        if (BaseECSComponent::isTypeValid(componentIDs[i]))
+        if (!BaseECSComponent::isTypeValid(componentIDs[i]))
         {
             DEBUG_LOG("ECS", LOG_ERROR, "'%u' is not a valid component type", componentIDs[i]);
             delete newEntity;
