@@ -24,31 +24,59 @@ struct TransformComponent : public ECSComponent<TransformComponent>
 
 struct MovementControlComponent : public ECSComponent<MovementControlComponent>
 {
-	Array<std::pair<Vector3f, InputControl*>> movementControls;
+	Array<std::pair<Vector3f, InputControl *>> movementControls;
 };
 
 class MovementControlSystem : public BaseECSSystem
 {
 public:
-	MovementControlSystem() : BaseECSSystem() 
+	MovementControlSystem() : BaseECSSystem()
 	{
 		addComponentType(TransformComponent::ID);
 		addComponentType(MovementControlComponent::ID);
 	}
 
-	virtual void updateComponents(float delta, BaseECSComponent** components)
+	virtual void updateComponents(float delta, BaseECSComponent **components)
 	{
-		TransformComponent* transform = (TransformComponent* )components[0];
-		MovementControlComponent* movementControl = (MovementControlComponent*)components[1];
+		TransformComponent *transform = (TransformComponent *)components[0];
+		MovementControlComponent *movementControl = (MovementControlComponent *)components[1];
 
-		for(uint32 i = 0; i < movementControl->movementControls.size(); i++) {
+		for (uint32 i = 0; i < movementControl->movementControls.size(); i++)
+		{
 			Vector3f movement = movementControl->movementControls[i].first;
 			InputControl *input = movementControl->movementControls[i].second;
 			Vector3f newPos = transform->transform.getTranslation() + movement * input->getAmt() * delta;
-			transform->transform.setTranslation(newPos);	
+			transform->transform.setTranslation(newPos);
 		}
 	}
+
 private:
+};
+
+class GameRenderContext : public RenderContext
+{
+public:
+	GameRenderContext(RenderDevice &deviceIn, RenderTarget &targetIn, RenderDevice::DrawParams &drawParamsIn,
+					  Shader &shaderIn, Sampler &samplerIn, const Matrix& perspectiveIn) : RenderContext(deviceIn, targetIn),
+				drawParams(drawParamsIn), shader(shaderIn), sampler(samplerIn), perspective(perspectiveIn), currentTexture(nullptr) {}
+
+	void renderMesh(VertexArray &vertexArray, Texture &texture, const Matrix& transformIn)
+	{
+		if(&texture != currentTexture) {
+			shader.setSampler("diffuse", texture, sampler, 0);
+		}
+
+		Matrix finalTransform = perspective * transformIn;
+		vertexArray.updateBuffer(4, &finalTransform, sizeof(Matrix));
+		draw(shader, vertexArray, drawParams, 1);
+	}
+
+private:
+	RenderDevice::DrawParams &drawParams;
+	Shader &shader;
+	Sampler &sampler;
+	Matrix perspective;
+	Texture* currentTexture;
 };
 
 // NOTE: Profiling reveals that in the current instanced rendering system:
@@ -63,7 +91,6 @@ static int runApp(Application *app)
 	// Begin scene creation
 	RenderDevice device(window);
 	RenderTarget target(device);
-	RenderContext context(device, target);
 
 	Array<IndexedModel> models;
 	Array<uint32> modelMaterialIndices;
@@ -121,6 +148,7 @@ static int runApp(Application *app)
 	//	drawParams.destBlend = RenderDevice::BLEND_FUNC_ONE;
 	// End scene creation
 
+	GameRenderContext gameRenderContext(device, target, drawParams, shader, sampler, perspective);
 	GameEventHandler eventHandler;
 	InputControl horizontal;
 	InputControl vertical;
@@ -151,7 +179,6 @@ static int runApp(Application *app)
 	ECSSystemList mainSystems;
 	mainSystems.addSystem(movementControlSystem);
 
-
 	uint32 fps = 0;
 	double lastTime = Time::getTime();
 	double fpsTimeCounter = 0.0;
@@ -181,10 +208,10 @@ static int runApp(Application *app)
 			// Begin scene update
 			ecs.updateSystems(mainSystems, frameTime);
 
-			Transform& workingTransform = ecs.getComponent<TransformComponent>(entity)->transform;
+			Transform &workingTransform = ecs.getComponent<TransformComponent>(entity)->transform;
 			Matrix transformMatrix = perspective * workingTransform.toMatrix();
 
-			vertexArray.updateBuffer(4, &transformMatrix, sizeof(Matrix));
+			// vertexArray.updateBuffer(4, &transformMatrix, sizeof(Matrix));
 			// End scene update
 
 			updateTimer -= frameTime;
@@ -194,8 +221,8 @@ static int runApp(Application *app)
 		if (shouldRender)
 		{
 			// Begin scene render
-			context.clear(color, true);
-			context.draw(shader, vertexArray, drawParams, 1);
+			gameRenderContext.clear(color, true);
+			// context.draw(shader, vertexArray, drawParams, 1);
 			// End scene render
 
 			window.present();
