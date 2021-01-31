@@ -195,7 +195,7 @@ void ECS::updateSystemWithMultipleComponents(uint32 index, ECSSystemList &system
 
     uint32 minSizeIndex = findLeastCommonRequiredComponent(componentTypes, componentFlags);
 
-    size_t typeSize = BaseECSComponent::getTypeSize(componentTypes[0]);
+    size_t typeSize = BaseECSComponent::getTypeSize(componentTypes[minSizeIndex]);
     Array<uint8> &array = *componentArrays[minSizeIndex];
     for (uint32 i = 0; i < array.size(); i += typeSize)
     {

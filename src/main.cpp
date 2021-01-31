@@ -17,6 +17,31 @@
 #include "core/input.hpp"
 #include "ecs/ecs.hpp"
 
+class GameRenderContext : public RenderContext
+{
+public:
+	GameRenderContext(RenderDevice &deviceIn, RenderTarget &targetIn, RenderDevice::DrawParams &drawParamsIn,
+					  Shader &shaderIn, Sampler &samplerIn, const Matrix& perspectiveIn) : RenderContext(deviceIn, targetIn),
+				drawParams(drawParamsIn), shader(shaderIn), sampler(samplerIn), perspective(perspectiveIn), currentTexture(nullptr) {}
+
+	void renderMesh(VertexArray &vertexArray, Texture &texture, const Matrix& transformIn)
+	{
+		if(&texture != currentTexture) {
+			shader.setSampler("diffuse", texture, sampler, 0);
+		}
+
+		Matrix finalTransform = perspective * transformIn;
+		vertexArray.updateBuffer(4, &finalTransform, sizeof(Matrix));
+		draw(shader, vertexArray, drawParams, 1);
+	}
+
+private:
+	RenderDevice::DrawParams &drawParams;
+	Shader &shader;
+	Sampler &sampler;
+	Matrix perspective;
+	Texture* currentTexture;
+};
 struct TransformComponent : public ECSComponent<TransformComponent>
 {
 	Transform transform;
@@ -25,6 +50,12 @@ struct TransformComponent : public ECSComponent<TransformComponent>
 struct MovementControlComponent : public ECSComponent<MovementControlComponent>
 {
 	Array<std::pair<Vector3f, InputControl *>> movementControls;
+};
+
+struct RenderableMeshComponent : public ECSComponent<RenderableMeshComponent>
+{
+	VertexArray* vertexArray = nullptr;
+	Texture *texture = nullptr;
 };
 
 class MovementControlSystem : public BaseECSSystem
@@ -53,31 +84,27 @@ public:
 private:
 };
 
-class GameRenderContext : public RenderContext
+class RenderableMeshSystem : public BaseECSSystem
 {
 public:
-	GameRenderContext(RenderDevice &deviceIn, RenderTarget &targetIn, RenderDevice::DrawParams &drawParamsIn,
-					  Shader &shaderIn, Sampler &samplerIn, const Matrix& perspectiveIn) : RenderContext(deviceIn, targetIn),
-				drawParams(drawParamsIn), shader(shaderIn), sampler(samplerIn), perspective(perspectiveIn), currentTexture(nullptr) {}
-
-	void renderMesh(VertexArray &vertexArray, Texture &texture, const Matrix& transformIn)
+	RenderableMeshSystem(GameRenderContext& contextIn) : BaseECSSystem(), context(contextIn)
 	{
-		if(&texture != currentTexture) {
-			shader.setSampler("diffuse", texture, sampler, 0);
-		}
+		addComponentType(TransformComponent::ID);
+		addComponentType(RenderableMeshComponent::ID);
+	}
 
-		Matrix finalTransform = perspective * transformIn;
-		vertexArray.updateBuffer(4, &finalTransform, sizeof(Matrix));
-		draw(shader, vertexArray, drawParams, 1);
+	virtual void updateComponents(float delta, BaseECSComponent **components)
+	{
+		TransformComponent *transform = (TransformComponent *)components[0];
+		RenderableMeshComponent *mesh = (RenderableMeshComponent *)components[1];
+
+		context.renderMesh(*mesh->vertexArray, *mesh->texture, transform->transform.toMatrix());
 	}
 
 private:
-	RenderDevice::DrawParams &drawParams;
-	Shader &shader;
-	Sampler &sampler;
-	Matrix perspective;
-	Texture* currentTexture;
+	GameRenderContext& context;
 };
+
 
 // NOTE: Profiling reveals that in the current instanced rendering system:
 // - Updating the buffer takes more time than
@@ -171,13 +198,25 @@ static int runApp(Application *app)
 	movementControl.movementControls.push_back(std::make_pair(Vector3f(1.0f, 0.0f, 0.0f) * 10.0f, &horizontal));
 	movementControl.movementControls.push_back(std::make_pair(Vector3f(0.0f, 1.0f, 0.0f) * 10.0f, &vertical));
 
+	RenderableMeshComponent renderableMesh;
+	renderableMesh.vertexArray = &vertexArray;
+	renderableMesh.texture = &texture;
+
 	// Create Entity
-	EntityHandle entity = ecs.makeEntity(transformComponent, movementControl);
+	ecs.makeEntity(transformComponent, movementControl, renderableMesh);
+	for(uint32 i = 0; i < 100; i++) {
+		transformComponent.transform.setTranslation(Vector3f(Math::randf()*10.0f-5.0f, Math::randf()*10.0f-5.0f, 20.0f));
+		ecs.makeEntity(transformComponent, renderableMesh);
+	}
 
 	// Create the systems
 	MovementControlSystem movementControlSystem;
+	RenderableMeshSystem renderableMeshSystem(gameRenderContext);
+
 	ECSSystemList mainSystems;
+	ECSSystemList renderingPipeline;
 	mainSystems.addSystem(movementControlSystem);
+	renderingPipeline.addSystem(renderableMeshSystem);
 
 	uint32 fps = 0;
 	double lastTime = Time::getTime();
@@ -207,11 +246,6 @@ static int runApp(Application *app)
 			app->processMessages(frameTime, eventHandler);
 			// Begin scene update
 			ecs.updateSystems(mainSystems, frameTime);
-
-			Transform &workingTransform = ecs.getComponent<TransformComponent>(entity)->transform;
-			Matrix transformMatrix = perspective * workingTransform.toMatrix();
-
-			// vertexArray.updateBuffer(4, &transformMatrix, sizeof(Matrix));
 			// End scene update
 
 			updateTimer -= frameTime;
@@ -222,7 +256,7 @@ static int runApp(Application *app)
 		{
 			// Begin scene render
 			gameRenderContext.clear(color, true);
-			// context.draw(shader, vertexArray, drawParams, 1);
+			ecs.updateSystems(renderingPipeline, frameTime);
 			// End scene render
 
 			window.present();
