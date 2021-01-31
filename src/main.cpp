@@ -21,12 +21,13 @@ class GameRenderContext : public RenderContext
 {
 public:
 	GameRenderContext(RenderDevice &deviceIn, RenderTarget &targetIn, RenderDevice::DrawParams &drawParamsIn,
-					  Shader &shaderIn, Sampler &samplerIn, const Matrix& perspectiveIn) : RenderContext(deviceIn, targetIn),
-				drawParams(drawParamsIn), shader(shaderIn), sampler(samplerIn), perspective(perspectiveIn), currentTexture(nullptr) {}
+					  Shader &shaderIn, Sampler &samplerIn, const Matrix &perspectiveIn) : RenderContext(deviceIn, targetIn),
+																						   drawParams(drawParamsIn), shader(shaderIn), sampler(samplerIn), perspective(perspectiveIn), currentTexture(nullptr) {}
 
-	void renderMesh(VertexArray &vertexArray, Texture &texture, const Matrix& transformIn)
+	void renderMesh(VertexArray &vertexArray, Texture &texture, const Matrix &transformIn)
 	{
-		if(&texture != currentTexture) {
+		if (&texture != currentTexture)
+		{
 			shader.setSampler("diffuse", texture, sampler, 0);
 		}
 
@@ -40,7 +41,7 @@ private:
 	Shader &shader;
 	Sampler &sampler;
 	Matrix perspective;
-	Texture* currentTexture;
+	Texture *currentTexture;
 };
 struct TransformComponent : public ECSComponent<TransformComponent>
 {
@@ -54,7 +55,7 @@ struct MovementControlComponent : public ECSComponent<MovementControlComponent>
 
 struct RenderableMeshComponent : public ECSComponent<RenderableMeshComponent>
 {
-	VertexArray* vertexArray = nullptr;
+	VertexArray *vertexArray = nullptr;
 	Texture *texture = nullptr;
 };
 
@@ -87,7 +88,7 @@ private:
 class RenderableMeshSystem : public BaseECSSystem
 {
 public:
-	RenderableMeshSystem(GameRenderContext& contextIn) : BaseECSSystem(), context(contextIn)
+	RenderableMeshSystem(GameRenderContext &contextIn) : BaseECSSystem(), context(contextIn)
 	{
 		addComponentType(TransformComponent::ID);
 		addComponentType(RenderableMeshComponent::ID);
@@ -102,9 +103,8 @@ public:
 	}
 
 private:
-	GameRenderContext& context;
+	GameRenderContext &context;
 };
-
 
 // NOTE: Profiling reveals that in the current instanced rendering system:
 // - Updating the buffer takes more time than
@@ -124,6 +124,9 @@ static int runApp(Application *app)
 	Array<MaterialSpec> modelMaterials;
 	ModelLoader::loadModels("./res/models/monkey3.obj", models,
 							modelMaterialIndices, modelMaterials);
+
+	ModelLoader::loadModels("./res/models/tinycube.obj", models,
+							modelMaterialIndices, modelMaterials);
 	//	IndexedModel model;
 	//	model.allocateElement(3); // Positions
 	//	model.allocateElement(2); // TexCoords
@@ -141,6 +144,7 @@ static int runApp(Application *app)
 	//	model.addIndices3i(0, 1, 2);
 
 	VertexArray vertexArray(device, models[0], RenderDevice::USAGE_STATIC_DRAW);
+	VertexArray tinyCubeVertexArray(device, models[1], RenderDevice::USAGE_STATIC_DRAW);
 	Sampler sampler(device, RenderDevice::FILTER_LINEAR_MIPMAP_LINEAR);
 	//	ArrayBitmap bitmap;
 	//	bitmap.set(0,0, Color::WHITE.toInt());
@@ -156,6 +160,13 @@ static int runApp(Application *app)
 		return 1;
 	}
 	Texture texture(device, ddsTexture);
+
+	if (!ddsTexture.load("./res/textures/bricks2.dds"))
+	{
+		DEBUG_LOG("Main", LOG_ERROR, "Could not load texture!");
+		return 1;
+	}
+	Texture bricks2Texture(device, ddsTexture);
 
 	String shaderText;
 	StringFuncs::loadTextFileWithIncludes(shaderText, "./res/shaders/basicShader.glsl", "#include");
@@ -204,9 +215,12 @@ static int runApp(Application *app)
 
 	// Create Entity
 	ecs.makeEntity(transformComponent, movementControl, renderableMesh);
-	for(uint32 i = 0; i < 100; i++) {
-		transformComponent.transform.setTranslation(Vector3f(Math::randf()*10.0f-5.0f, Math::randf()*10.0f-5.0f, 20.0f));
+	for (uint32 i = 0; i < 100; i++)
+	{
+		transformComponent.transform.setTranslation(Vector3f(Math::randf() * 10.0f - 5.0f, Math::randf() * 10.0f - 5.0f, 20.0f));
 		ecs.makeEntity(transformComponent, renderableMesh);
+		renderableMesh.vertexArray = &tinyCubeVertexArray;
+		renderableMesh.texture = Math::randf() > 0.5f ? &texture : &bricks2Texture;
 	}
 
 	// Create the systems

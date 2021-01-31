@@ -1,0 +1,1 @@
+convert -format dds -define dds:compression=dxt5 -filter Lanczos file.jpg file.dds
