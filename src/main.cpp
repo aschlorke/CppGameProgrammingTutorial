@@ -33,6 +33,7 @@ namespace MotionIntegrators
 		verlet(pos, velocity, acceleration, delta * frComplement);
 		verlet(pos, velocity, acceleration, delta * frCoefficient);
 	}
+
 	void verlet(Vector3f &pos, Vector3f &velocity, const Vector3f &acceleration, float delta)
 	{
 		float halfDelta = delta * 0.5f;
@@ -297,7 +298,7 @@ static int runApp(Application *app)
 
 	// Create Entity
 	ecs.makeEntity(transformComponent, movementControl, renderableMesh);
-	for (uint32 i = 0; i < 50000; i++)
+	for (uint32 i = 0; i < 100000; i++)
 	{
 		transformComponent.transform.setTranslation(Vector3f(Math::randf() * 10.0f - 5.0f, Math::randf() * 10.0f - 5.0f, 20.0f));
 		renderableMesh.vertexArray = &tinyCubeVertexArray;
