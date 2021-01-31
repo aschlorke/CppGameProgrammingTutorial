@@ -17,6 +17,37 @@
 #include "core/input.hpp"
 #include "ecs/ecs.hpp"
 
+namespace MotionIntegrators
+{
+	void forestRuth(Vector3f &pos, Vector3f &velocity, const Vector3f &acceleration, float delta);
+	void verlet(Vector3f &pos, Vector3f &velocity, const Vector3f &acceleration, float delta);
+	void modifiedEuler(Vector3f &pos, Vector3f &velocity, const Vector3f &acceleration, float delta);
+
+	// ordered by most to least accurate
+	void forestRuth(Vector3f &pos, Vector3f &velocity, const Vector3f &acceleration, float delta)
+	{
+		static const float frCoefficient = 1.0f / (2.0f - Math::pow(2.0f, 1.0f / 3.0f));
+		static const float frComplement = 1 - 2 * frCoefficient;
+
+		verlet(pos, velocity, acceleration, delta * frCoefficient);
+		verlet(pos, velocity, acceleration, delta * frComplement);
+		verlet(pos, velocity, acceleration, delta * frCoefficient);
+	}
+	void verlet(Vector3f &pos, Vector3f &velocity, const Vector3f &acceleration, float delta)
+	{
+		float halfDelta = delta * 0.5f;
+		pos += velocity * halfDelta;
+		velocity += acceleration * delta;
+		pos += velocity * halfDelta;
+	}
+
+	void modifiedEuler(Vector3f &pos, Vector3f &velocity, const Vector3f &acceleration, float delta)
+	{
+		velocity += acceleration * delta;
+		pos += velocity * delta;
+	}
+} // namespace MotionIntegrators
+
 class GameRenderContext : public RenderContext
 {
 public:
@@ -78,6 +109,34 @@ struct RenderableMeshComponent : public ECSComponent<RenderableMeshComponent>
 {
 	VertexArray *vertexArray = nullptr;
 	Texture *texture = nullptr;
+};
+
+struct MotionComponent : public ECSComponent<MotionComponent>
+{
+	Vector3f velocity = Vector3f(0.0f, 0.0f, 0.0f);
+	Vector3f acceleration = Vector3f(0.0f, 0.0f, 0.0f);
+};
+
+class MotionSystem : public BaseECSSystem
+{
+public:
+	MotionSystem() : BaseECSSystem()
+	{
+		addComponentType(TransformComponent::ID);
+		addComponentType(MotionComponent::ID);
+	}
+
+	virtual void updateComponents(float delta, BaseECSComponent **components)
+	{
+		TransformComponent *transform = (TransformComponent *)components[0];
+		MotionComponent *motion = (MotionComponent *)components[1];
+
+		Vector3f newPos = transform->transform.getTranslation();
+		MotionIntegrators::forestRuth(newPos, motion->velocity, motion->acceleration, delta);
+		transform->transform.setTranslation(newPos);
+	}
+
+private:
 };
 
 class MovementControlSystem : public BaseECSSystem
@@ -234,23 +293,34 @@ static int runApp(Application *app)
 	renderableMesh.vertexArray = &vertexArray;
 	renderableMesh.texture = &texture;
 
+	MotionComponent motionComponent;
+
 	// Create Entity
 	ecs.makeEntity(transformComponent, movementControl, renderableMesh);
-	for (uint32 i = 0; i < 100000; i++)
+	for (uint32 i = 0; i < 50000; i++)
 	{
 		transformComponent.transform.setTranslation(Vector3f(Math::randf() * 10.0f - 5.0f, Math::randf() * 10.0f - 5.0f, 20.0f));
-		ecs.makeEntity(transformComponent, renderableMesh);
 		renderableMesh.vertexArray = &tinyCubeVertexArray;
 		renderableMesh.texture = Math::randf() > 0.5f ? &texture : &bricks2Texture;
+
+		float vf = -4.0f;
+		float af = 5.0f;
+
+		motionComponent.acceleration = Vector3f(Math::randf(-af, af), Math::randf(-af, af), Math::randf(-af, af));
+		motionComponent.velocity = motionComponent.acceleration * vf;
+
+		ecs.makeEntity(transformComponent, motionComponent, renderableMesh);
 	}
 
 	// Create the systems
 	MovementControlSystem movementControlSystem;
+	MotionSystem motionSystem;
 	RenderableMeshSystem renderableMeshSystem(gameRenderContext);
 
 	ECSSystemList mainSystems;
 	ECSSystemList renderingPipeline;
 	mainSystems.addSystem(movementControlSystem);
+	mainSystems.addSystem(motionSystem);
 	renderingPipeline.addSystem(renderableMeshSystem);
 
 	uint32 fps = 0;
