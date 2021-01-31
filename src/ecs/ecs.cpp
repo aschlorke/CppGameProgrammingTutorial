@@ -149,7 +149,7 @@ void ECS::updateSystems(ECSSystemList &systems, float delta)
             for (uint32 j = 0; j < array.size(); j += typeSize)
             {
                 BaseECSComponent *component = (BaseECSComponent *)&array[j];
-                systems[j]->updateComponents(delta, &component);
+                systems[i]->updateComponents(delta, &component);
             }
         }
         else
