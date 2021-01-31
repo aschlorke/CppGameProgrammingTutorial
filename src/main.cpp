@@ -22,18 +22,39 @@ class GameRenderContext : public RenderContext
 public:
 	GameRenderContext(RenderDevice &deviceIn, RenderTarget &targetIn, RenderDevice::DrawParams &drawParamsIn,
 					  Shader &shaderIn, Sampler &samplerIn, const Matrix &perspectiveIn) : RenderContext(deviceIn, targetIn),
-																						   drawParams(drawParamsIn), shader(shaderIn), sampler(samplerIn), perspective(perspectiveIn), currentTexture(nullptr) {}
+																						   drawParams(drawParamsIn), shader(shaderIn), sampler(samplerIn), perspective(perspectiveIn) {}
 
 	void renderMesh(VertexArray &vertexArray, Texture &texture, const Matrix &transformIn)
 	{
-		if (&texture != currentTexture)
-		{
-			shader.setSampler("diffuse", texture, sampler, 0);
-		}
+		meshRenderBuffer[std::make_pair(&vertexArray, &texture)].push_back(perspective * transformIn);
+	}
 
-		Matrix finalTransform = perspective * transformIn;
-		vertexArray.updateBuffer(4, &finalTransform, sizeof(Matrix));
-		draw(shader, vertexArray, drawParams, 1);
+	// flush the render buffer and draw everything
+	void flush()
+	{
+		Texture *currentTexture = nullptr;
+
+		for (auto it = meshRenderBuffer.begin(); it != meshRenderBuffer.end(); it++)
+		{
+			VertexArray *vertexArray = it->first.first;
+			Texture *texture = it->first.second;
+			Matrix *transforms = &it->second[0];
+			size_t numTransforms = it->second.size();
+
+			if (numTransforms == 0)
+			{
+				continue;
+			}
+
+			if (texture != currentTexture)
+			{
+				shader.setSampler("diffuse", *texture, sampler, 0);
+			}
+			vertexArray->updateBuffer(4, transforms, numTransforms * sizeof(Matrix));
+			draw(shader, *vertexArray, drawParams, numTransforms);
+
+			it->second.clear();
+		}
 	}
 
 private:
@@ -41,7 +62,7 @@ private:
 	Shader &shader;
 	Sampler &sampler;
 	Matrix perspective;
-	Texture *currentTexture;
+	Map<std::pair<VertexArray *, Texture *>, Array<Matrix>> meshRenderBuffer;
 };
 struct TransformComponent : public ECSComponent<TransformComponent>
 {
@@ -215,7 +236,7 @@ static int runApp(Application *app)
 
 	// Create Entity
 	ecs.makeEntity(transformComponent, movementControl, renderableMesh);
-	for (uint32 i = 0; i < 100; i++)
+	for (uint32 i = 0; i < 100000; i++)
 	{
 		transformComponent.transform.setTranslation(Vector3f(Math::randf() * 10.0f - 5.0f, Math::randf() * 10.0f - 5.0f, 20.0f));
 		ecs.makeEntity(transformComponent, renderableMesh);
@@ -254,7 +275,7 @@ static int runApp(Application *app)
 			fps = 0;
 		}
 
-		bool shouldRender = false;
+		bool shouldRender = true;
 		while (updateTimer >= frameTime)
 		{
 			app->processMessages(frameTime, eventHandler);
@@ -271,6 +292,7 @@ static int runApp(Application *app)
 			// Begin scene render
 			gameRenderContext.clear(color, true);
 			ecs.updateSystems(renderingPipeline, frameTime);
+			gameRenderContext.flush();
 			// End scene render
 
 			window.present();
