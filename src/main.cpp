@@ -22,7 +22,7 @@ static int runApp(Application *app)
 	drawParams.depthFunc = RenderDevice::DRAW_FUNC_LESS;
 	//	drawParams.sourceBlend = RenderDevice::BLEND_FUNC_ONE;
 	//	drawParams.destBlend = RenderDevice::BLEND_FUNC_ONE;
-		
+
 	RenderTarget target(device);
 
 	// an error is thrown when creating a shader without having set a vertexArray

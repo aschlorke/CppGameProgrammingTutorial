@@ -9,17 +9,19 @@
 class ECSListener
 {
 public:
-    virtual void onMakeEntity(EntityHandle handle);
-    virtual void onRemoveEntity(EntityHandle handle);
-    virtual void onAddComponent(EntityHandle handle, uint32 id);
-    virtual void onRemoveComponent(EntityHandle handle, uint32 id);
+    virtual void onMakeEntity(EntityHandle handle) {}
+    virtual void onRemoveEntity(EntityHandle handle) {}
+    virtual void onAddComponent(EntityHandle handle, uint32 id) {}
+    virtual void onRemoveComponent(EntityHandle handle, uint32 id) {}
 
-    const Array<uint32>& getComponentIDs() {return componentIDs;}
+    const Array<uint32> &getComponentIDs() { return componentIDs; }
 
 protected:
-    void addComponentID(uint32 id) {
+    void addComponentID(uint32 id)
+    {
         componentIDs.push_back(id);
     }
+
 private:
     Array<uint32> componentIDs;
 };
@@ -31,7 +33,8 @@ public:
     ~ECS();
 
     // ecs listener methods
-    inline void addListener(ECSListener* listener) {
+    inline void addListener(ECSListener *listener)
+    {
         listeners.push_back(listener);
     }
 
@@ -124,10 +127,13 @@ public:
     inline void addComponent(EntityHandle handle, Component *component)
     {
         addComponentInternal(handle, handleToEntity(handle), Component::ID, component);
-        for(uint32 i = 0; i < listeners.size(); i++) {
-            const Array<uint32>& componentIDs = listeners[i]->getComponentIDs();
-            for(uint32 j = 0; j < componentIDs.size(); j++) {
-                if(componentIDs[j] == Component::ID) {
+        for (uint32 i = 0; i < listeners.size(); i++)
+        {
+            const Array<uint32> &componentIDs = listeners[i]->getComponentIDs();
+            for (uint32 j = 0; j < componentIDs.size(); j++)
+            {
+                if (componentIDs[j] == Component::ID)
+                {
                     listeners[i]->onAddComponent(handle, Component::ID);
                     break;
                 }
@@ -138,10 +144,13 @@ public:
     template <class Component>
     inline bool removeComponent(EntityHandle entity)
     {
-        for(uint32 i = 0; i < listeners.size(); i++) {
-            const Array<uint32>& componentIDs = listeners[i]->getComponentIDs();
-            for(uint32 j = 0; j < componentIDs.size(); j++) {
-                if(componentIDs[j] == Component::ID) {
+        for (uint32 i = 0; i < listeners.size(); i++)
+        {
+            const Array<uint32> &componentIDs = listeners[i]->getComponentIDs();
+            for (uint32 j = 0; j < componentIDs.size(); j++)
+            {
+                if (componentIDs[j] == Component::ID)
+                {
                     listeners[i]->onRemoveComponent(entity, Component::ID);
                     break;
                 }
@@ -161,7 +170,7 @@ public:
 private:
     Map<uint32, Array<uint8>> components;
     Array<std::pair<uint32, Array<std::pair<uint32, uint32>>> *> entities;
-    Array<ECSListener*> listeners;
+    Array<ECSListener *> listeners;
 
     inline std::pair<uint32, Array<std::pair<uint32, uint32>>> *handleToRawType(EntityHandle handle)
     {
