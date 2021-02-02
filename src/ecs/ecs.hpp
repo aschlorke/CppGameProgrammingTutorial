@@ -165,6 +165,11 @@ public:
         return (Component *)getComponentInternal(handleToEntity(entity), components[Component::ID], Component::ID);
     }
 
+    inline BaseECSComponent *getComponentByType(EntityHandle entity, uint32 componentID)
+    {
+        return getComponentInternal(handleToEntity(entity), components[componentID], componentID);
+    }
+
     void updateSystems(ECSSystemList &systems, float delta);
 
 private:
