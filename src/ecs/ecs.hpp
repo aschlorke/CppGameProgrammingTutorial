@@ -16,7 +16,22 @@ public:
 
     const Array<uint32> &getComponentIDs() { return componentIDs; }
 
+    inline bool shouldNotifyOnAllComponentOperations()
+    {
+        return notifyOnAllComponentOperations;
+    }
+
+    inline bool shouldNotifyOnAllEntityOperations()
+    {
+        return notifyOnAllEntityOperations;
+    }
+
 protected:
+    inline void setNotificationSettings(bool shouldNotifyOnAllComponentOperations, bool shouldNotifyOnAllEntityOperations)
+    {
+        notifyOnAllComponentOperations = shouldNotifyOnAllComponentOperations;
+        notifyOnAllEntityOperations = shouldNotifyOnAllEntityOperations;
+    }
     void addComponentID(uint32 id)
     {
         componentIDs.push_back(id);
@@ -24,6 +39,8 @@ protected:
 
 private:
     Array<uint32> componentIDs;
+    bool notifyOnAllComponentOperations = false;
+    bool notifyOnAllEntityOperations = false;
 };
 
 class ECS
@@ -130,12 +147,19 @@ public:
         for (uint32 i = 0; i < listeners.size(); i++)
         {
             const Array<uint32> &componentIDs = listeners[i]->getComponentIDs();
-            for (uint32 j = 0; j < componentIDs.size(); j++)
+            if (listeners[i]->shouldNotifyOnAllComponentOperations())
             {
-                if (componentIDs[j] == Component::ID)
+                listeners[i]->onAddComponent(handle, Component::ID);
+            }
+            else
+            {
+                for (uint32 j = 0; j < componentIDs.size(); j++)
                 {
-                    listeners[i]->onAddComponent(handle, Component::ID);
-                    break;
+                    if (componentIDs[j] == Component::ID)
+                    {
+                        listeners[i]->onAddComponent(handle, Component::ID);
+                        break;
+                    }
                 }
             }
         }
@@ -147,12 +171,19 @@ public:
         for (uint32 i = 0; i < listeners.size(); i++)
         {
             const Array<uint32> &componentIDs = listeners[i]->getComponentIDs();
-            for (uint32 j = 0; j < componentIDs.size(); j++)
+            if (listeners[i]->shouldNotifyOnAllComponentOperations())
             {
-                if (componentIDs[j] == Component::ID)
+                listeners[i]->onRemoveComponent(entity, Component::ID);
+            }
+            else
+            {
+                for (uint32 j = 0; j < componentIDs.size(); j++)
                 {
-                    listeners[i]->onRemoveComponent(entity, Component::ID);
-                    break;
+                    if (componentIDs[j] == Component::ID)
+                    {
+                        listeners[i]->onRemoveComponent(entity, Component::ID);
+                        break;
+                    }
                 }
             }
         }

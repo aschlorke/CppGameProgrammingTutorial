@@ -25,6 +25,11 @@ void InteractionWorld::onAddComponent(EntityHandle handle, uint32 id)
             addEntity(handle);
         }
     }
+    else if (ecs.getComponent<ColliderComponent>(handle) != nullptr &&
+             ecs.getComponent<TransformComponent>(handle) != nullptr)
+    {
+        entitiesToUpdate.push_back(handle);
+    }
 }
 void InteractionWorld::onRemoveComponent(EntityHandle handle, uint32 id)
 {
@@ -32,15 +37,21 @@ void InteractionWorld::onRemoveComponent(EntityHandle handle, uint32 id)
     {
         entitiesToRemove.push_back(handle);
     }
+    else if (ecs.getComponent<ColliderComponent>(handle) != nullptr &&
+             ecs.getComponent<TransformComponent>(handle) != nullptr)
+    {
+        entitiesToUpdate.push_back(handle);
+    }
 }
 
 void InteractionWorld::addEntity(EntityHandle handle)
 {
     EntityInternal entity;
     entity.handle = handle;
-
-    // TODO: Compute interactions
-
+    for (size_t i = 0; i < interactions.size(); i++)
+    {
+        computeInteractions(entity, i);
+    }
     entities.push_back(entity);
 }
 
@@ -79,7 +90,7 @@ void InteractionWorld::computeInteractions(EntityInternal &entity, uint32 intera
 
 void InteractionWorld::processInteractions(float delta)
 {
-    removeEntities();
+    removeAndUpdateEntities();
     std::sort(entities.begin(), entities.end(), compareAABB);
 
     Vector3f centerSum(0.0f);
@@ -129,22 +140,33 @@ void InteractionWorld::processInteractions(float delta)
     compareAABB.axis = maxVarAxis;
 }
 
-void InteractionWorld::removeEntities()
+void InteractionWorld::addInteraction(Interaction *interaction)
+{
+    interactions.push_back(interaction);
+    size_t index = interactions.size() - 1;
+    for (uint32 i = 0; i < entities.size(); i++)
+    {
+        computeInteractions(entities[i], index);
+    }
+}
+
+void InteractionWorld::removeAndUpdateEntities()
 {
     if (entitiesToRemove.size() == 0)
     {
         return;
     }
 
-    for (size_t i = 0; i < entitiesToRemove.size(); i++)
+    for (size_t i = 0; i < entities.size(); i++)
     {
+        // remove entities
         bool didRemove = false;
         do
         {
             didRemove = false;
-            for (size_t j = 0; j < entities.size(); j++)
+            for (size_t j = 0; j < entitiesToRemove.size(); j++)
             {
-                if (entitiesToRemove[i] == entities[j].handle)
+                if (entities[i].handle == entitiesToRemove[j])
                 {
                     entities.swap_remove(i);
                     entitiesToRemove.swap_remove(j);
@@ -152,12 +174,28 @@ void InteractionWorld::removeEntities()
                     break;
                 }
             }
-            if (didRemove && entitiesToRemove.size() == 0)
+            if (entitiesToRemove.size() == 0 && entitiesToUpdate.size() == 0)
             {
                 return;
             }
         } while (didRemove);
+
+        // update entities
+        for (size_t j = 0; j < entitiesToUpdate.size(); j++)
+        {
+            if (entities[i].handle == entitiesToUpdate[j])
+            {
+                entities[i].interactors.clear();
+                entities[i].interactees.clear();
+                for (size_t k = 0; k < interactions.size(); k++)
+                {
+                    computeInteractions(entities[i], k);
+                }
+                entitiesToUpdate.swap_remove(j);
+            }
+        }
     }
 
     entitiesToRemove.clear();
+    entitiesToUpdate.clear();
 }
